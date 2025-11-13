@@ -1,6 +1,8 @@
 # Wishlist App
 
-A privacy-focused wishlist web application where users can create gift lists, add items by pasting URLs (with automatic metadata fetching), and share public links for others to claim items. Built with Angular and Vercel serverless functions.
+A privacy-focused wishlist web application where users can create gift lists, add items by pasting URLs (with automatic metadata fetching), and share public links for others to claim items. Built with Angular and Express.js backend.
+
+> **📋 Migration Complete!** The app has been migrated to Express.js for better local development while maintaining Vercel deployment compatibility. See [MIGRATION_NOTES.md](MIGRATION_NOTES.md) for details.
 
 ## Features
 
@@ -34,12 +36,14 @@ A privacy-focused wishlist web application where users can create gift lists, ad
 - **TypeScript** with strict mode
 
 ### Backend
-- **Vercel Serverless Functions** (Node.js)
+- **Express.js** (Node.js) with Vercel deployment support
 - **MongoDB Atlas** with native driver
 - **JWT** for authentication
 - **bcrypt** for password hashing
 - **Zod** for validation
 - **nanoid** for unique ID generation
+- **CORS** support for local development
+- **Helmet** for security headers
 
 ## Project Structure
 

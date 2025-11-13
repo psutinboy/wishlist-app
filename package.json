@@ -7,7 +7,11 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:wishlist-app": "node dist/wishlist-app/server/server.mjs"
+    "serve:ssr:wishlist-app": "node dist/wishlist-app/server/server.mjs",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "ng serve",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "backend:install": "cd backend && npm install"
   },
   "prettier": {
     "printWidth": 100,
@@ -52,6 +56,7 @@
     "@types/express": "^5.0.1",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^20.17.19",
+    "concurrently": "^9.1.2",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

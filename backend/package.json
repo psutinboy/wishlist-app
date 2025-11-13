@@ -1,0 +1,28 @@
+{
+  "name": "wishlist-backend",
+  "version": "1.0.0",
+  "description": "Express backend for Wishlist App",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --env-file=.env server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "helmet": "^8.0.0",
+    "cookie-parser": "^1.4.7",
+    "mongodb": "^7.0.0",
+    "bcrypt": "^6.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.25.76",
+    "node-html-parser": "^7.0.1",
+    "nanoid": "^5.1.6",
+    "dotenv": "^17.2.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

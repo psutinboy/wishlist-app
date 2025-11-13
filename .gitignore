@@ -8,6 +8,7 @@
 
 # Node
 /node_modules
+/backend/node_modules
 npm-debug.log
 yarn-error.log
 
@@ -46,6 +47,9 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+/backend/.env
+/backend/.env.local
+/backend/.env.*.local
 
 info.txt
 .vercel
