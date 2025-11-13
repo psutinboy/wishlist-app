@@ -1,0 +1,237 @@
+<div class="settings-container">
+  <header class="settings-header">
+    <div class="header-content">
+      <div class="header-left">
+        <a routerLink="/dashboard" class="back-link">&larr; Back to Dashboard</a>
+        <h1>Settings</h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="settings-main">
+    @if (successMessage()) {
+      <div class="success-message">
+        {{ successMessage() }}
+        <button (click)="clearMessages()" class="btn-close-msg">&times;</button>
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="error-message">
+        {{ errorMessage() }}
+        <button (click)="clearMessages()" class="btn-close-msg">&times;</button>
+      </div>
+    }
+
+    <div class="settings-content">
+      <nav class="settings-nav">
+        <button
+          [class.active]="activeTab() === 'account'"
+          (click)="setActiveTab('account')"
+          class="nav-item"
+        >
+          Account
+        </button>
+        <button
+          [class.active]="activeTab() === 'preferences'"
+          (click)="setActiveTab('preferences')"
+          class="nav-item"
+        >
+          Preferences
+        </button>
+        <button
+          [class.active]="activeTab() === 'data'"
+          (click)="setActiveTab('data')"
+          class="nav-item"
+        >
+          Data
+        </button>
+        <button
+          [class.active]="activeTab() === 'danger'"
+          (click)="setActiveTab('danger')"
+          class="nav-item danger"
+        >
+          Danger Zone
+        </button>
+      </nav>
+
+      <div class="settings-panel">
+        @if (activeTab() === 'account') {
+          <div class="panel-section">
+            <h2>Account Information</h2>
+            <form [formGroup]="accountForm" (ngSubmit)="updateAccount()">
+              <div class="form-group">
+                <label for="displayName">Display Name</label>
+                <input
+                  id="displayName"
+                  type="text"
+                  formControlName="displayName"
+                  placeholder="Your name"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  formControlName="email"
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <button type="submit" class="btn btn-primary" [disabled]="accountForm.invalid || isUpdating()">
+                @if (isUpdating()) {
+                  <span>Updating...</span>
+                } @else {
+                  <span>Update Account</span>
+                }
+              </button>
+            </form>
+          </div>
+
+          <div class="panel-section">
+            <h2>Change Password</h2>
+            <form [formGroup]="passwordForm" (ngSubmit)="updatePassword()">
+              <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <input
+                  id="currentPassword"
+                  type="password"
+                  formControlName="currentPassword"
+                  placeholder="Enter current password"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  formControlName="newPassword"
+                  placeholder="Enter new password (8+ characters)"
+                />
+              </div>
+
+              <button type="submit" class="btn btn-primary" [disabled]="passwordForm.invalid || isUpdating()">
+                @if (isUpdating()) {
+                  <span>Updating...</span>
+                } @else {
+                  <span>Change Password</span>
+                }
+              </button>
+            </form>
+          </div>
+        }
+
+        @if (activeTab() === 'preferences') {
+          <div class="panel-section">
+            <h2>List Preferences</h2>
+            <form [formGroup]="preferencesForm" (ngSubmit)="updatePreferences()">
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" formControlName="defaultListVisibility" />
+                  <span>Make new lists public by default</span>
+                </label>
+                <p class="help-text">Public lists can be viewed by anyone with the share link</p>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" formControlName="allowClaimsByDefault" />
+                  <span>Allow claims on new lists by default</span>
+                </label>
+                <p class="help-text">Let others claim items from your lists</p>
+              </div>
+
+              <div class="form-group">
+                <label for="theme">Theme</label>
+                <select id="theme" formControlName="theme">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="system">System</option>
+                </select>
+                <p class="help-text">Choose your preferred color scheme</p>
+              </div>
+
+              <button type="submit" class="btn btn-primary" [disabled]="preferencesForm.invalid || isUpdating()">
+                @if (isUpdating()) {
+                  <span>Updating...</span>
+                } @else {
+                  <span>Save Preferences</span>
+                }
+              </button>
+            </form>
+          </div>
+        }
+
+        @if (activeTab() === 'data') {
+          <div class="panel-section">
+            <h2>Export Your Data</h2>
+            <p>Download all your data in JSON format, including lists, items, and claims.</p>
+            <button (click)="exportData()" class="btn btn-primary" [disabled]="isExporting()">
+              @if (isExporting()) {
+                <span>Exporting...</span>
+              } @else {
+                <span>Download Data</span>
+              }
+            </button>
+          </div>
+
+          <div class="panel-section">
+            <h2>Contact Support</h2>
+            <p>Need help? Have questions? Contact our support team.</p>
+            <a [href]="getSupportEmail()" class="btn btn-secondary">Email Support</a>
+          </div>
+        }
+
+        @if (activeTab() === 'danger') {
+          <div class="panel-section danger-section">
+            <h2>Delete Account</h2>
+            <div class="warning-box">
+              <p><strong>Warning:</strong> This action cannot be undone!</p>
+              <p>Deleting your account will permanently remove:</p>
+              <ul>
+                <li>All your wishlists</li>
+                <li>All items in your lists</li>
+                <li>All claims on your items</li>
+                <li>Your account information</li>
+              </ul>
+            </div>
+
+            <form [formGroup]="deleteForm" (ngSubmit)="deleteAccount()">
+              <div class="form-group">
+                <label for="deletePassword">Confirm Password</label>
+                <input
+                  id="deletePassword"
+                  type="password"
+                  formControlName="password"
+                  placeholder="Enter your password"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="confirmation">Type DELETE to confirm</label>
+                <input
+                  id="confirmation"
+                  type="text"
+                  formControlName="confirmation"
+                  placeholder="DELETE"
+                />
+              </div>
+
+              <button type="submit" class="btn btn-danger" [disabled]="deleteForm.invalid || isDeleting()">
+                @if (isDeleting()) {
+                  <span>Deleting...</span>
+                } @else {
+                  <span>Delete My Account</span>
+                }
+              </button>
+            </form>
+          </div>
+        }
+      </div>
+    </div>
+  </main>
+</div>
+

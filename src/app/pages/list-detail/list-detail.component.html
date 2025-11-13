@@ -1,0 +1,203 @@
+<div class="list-detail-container">
+  <header class="list-header">
+    <div class="header-content">
+      <div class="header-left">
+        <a routerLink="/dashboard" class="back-link">&larr; Back to Lists</a>
+        @if (list()) {
+          <h1>{{ list()!.title }}</h1>
+          <div class="list-meta">
+            <span [class]="'badge ' + (list()!.isPublic ? 'badge-public' : 'badge-private')">
+              {{ list()!.isPublic ? 'Public' : 'Private' }}
+            </span>
+            <span class="item-count">{{ items().length }} items</span>
+          </div>
+        }
+      </div>
+      <div class="header-actions">
+        <button (click)="copyShareUrl()" class="btn btn-secondary">Share List</button>
+        <button (click)="openAddItemModal()" class="btn btn-primary">Add Item</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="list-main">
+    @if (isLoading()) {
+      <div class="loading">Loading list...</div>
+    }
+
+    @if (error()) {
+      <div class="error-message">{{ error() }}</div>
+    }
+
+    @if (!isLoading() && items().length === 0) {
+      <div class="empty-state">
+        <h2>No items yet</h2>
+        <p>Start adding items to your wishlist!</p>
+        <button (click)="openAddItemModal()" class="btn btn-primary">Add First Item</button>
+      </div>
+    }
+
+    @if (items().length > 0) {
+      <div class="items-container">
+        @for (group of groupedItems(); track group[0]) {
+          <div class="category-group">
+            <h2 class="category-title">{{ group[0] }}</h2>
+            <div class="items-grid">
+              @for (item of group[1]; track item.id) {
+                <div class="item-card">
+                  @if (item.imageUrl) {
+                    <div class="item-image">
+                      <img [src]="item.imageUrl" [alt]="item.title" />
+                    </div>
+                  }
+                  <div class="item-content">
+                    <div class="item-header">
+                      <h3>{{ item.title }}</h3>
+                      <span [class]="'priority-badge ' + getPriorityClass(item.priority)">
+                        {{ item.priority || 'medium' }}
+                      </span>
+                    </div>
+                    
+                    @if (item.price) {
+                      <div class="item-price">{{ formatPrice(item.price) }}</div>
+                    }
+
+                    @if (item.notes) {
+                      <p class="item-notes">{{ item.notes }}</p>
+                    }
+
+                    @if (item.url) {
+                      <a [href]="item.url" target="_blank" class="item-link">View Item &rarr;</a>
+                    }
+
+                    <div class="item-actions">
+                      <button (click)="openEditItemModal(item)" class="btn-link">Edit</button>
+                      <button (click)="deleteItem(item)" class="btn-link danger">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </main>
+</div>
+
+@if (showItemModal()) {
+  <div class="modal-overlay" (click)="closeItemModal()">
+    <div class="modal-content large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingItem() ? 'Edit Item' : 'Add New Item' }}</h2>
+        <button (click)="closeItemModal()" class="btn-close">&times;</button>
+      </div>
+      
+      <form [formGroup]="itemForm" (ngSubmit)="saveItem()">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="url">URL (Optional)</label>
+            <div class="url-input-group">
+              <input
+                id="url"
+                type="url"
+                formControlName="url"
+                placeholder="https://example.com/product"
+              />
+              <button 
+                type="button" 
+                (click)="previewUrl()" 
+                class="btn btn-secondary btn-sm"
+                [disabled]="!itemForm.controls.url.value || isPreviewLoading()"
+              >
+                @if (isPreviewLoading()) {
+                  <span>Loading...</span>
+                } @else {
+                  <span>Preview</span>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="title">Title *</label>
+          <input
+            id="title"
+            type="text"
+            formControlName="title"
+            placeholder="Item name"
+            [class.error]="itemForm.controls.title.invalid && itemForm.controls.title.touched"
+          />
+          @if (itemForm.controls.title.invalid && itemForm.controls.title.touched) {
+            <span class="field-error">Title is required (max 200 characters)</span>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="price">Price (in cents)</label>
+            <input
+              id="price"
+              type="number"
+              formControlName="price"
+              placeholder="e.g., 2999 for $29.99"
+              min="0"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="category">Category</label>
+            <input
+              id="category"
+              type="text"
+              formControlName="category"
+              placeholder="e.g., Books, Electronics"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="priority">Priority</label>
+          <select id="priority" formControlName="priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="imageUrl">Image URL (Optional)</label>
+          <input
+            id="imageUrl"
+            type="url"
+            formControlName="imageUrl"
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes</label>
+          <textarea
+            id="notes"
+            formControlName="notes"
+            rows="3"
+            placeholder="Additional details..."
+          ></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" (click)="closeItemModal()" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="itemForm.invalid || isSubmitting()">
+            @if (isSubmitting()) {
+              <span>Saving...</span>
+            } @else {
+              <span>{{ editingItem() ? 'Update' : 'Add' }} Item</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+

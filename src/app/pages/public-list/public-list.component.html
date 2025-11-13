@@ -1,0 +1,162 @@
+<div class="public-list-container">
+  <header class="public-header">
+    <div class="header-content">
+      @if (list()) {
+        <div class="header-info">
+          <h1>{{ list()!.title }}</h1>
+          <p class="owner-info">by {{ list()!.ownerName }}</p>
+        </div>
+        <div class="header-note">
+          <span class="info-icon">ℹ️</span>
+          <span>Claim items to let others know you're getting them!</span>
+        </div>
+      }
+    </div>
+  </header>
+
+  <main class="public-main">
+    @if (isLoading()) {
+      <div class="loading">Loading wishlist...</div>
+    }
+
+    @if (error()) {
+      <div class="error-message">{{ error() }}</div>
+    }
+
+    @if (!isLoading() && items().length === 0) {
+      <div class="empty-state">
+        <h2>This wishlist is empty</h2>
+        <p>The list owner hasn't added any items yet.</p>
+      </div>
+    }
+
+    @if (items().length > 0) {
+      <div class="items-container">
+        @for (group of groupedItems(); track group[0]) {
+          <div class="category-group">
+            <h2 class="category-title">{{ group[0] }}</h2>
+            <div class="items-grid">
+              @for (item of group[1]; track item.id) {
+                <div [class]="'item-card ' + (item.isClaimed ? 'claimed' : '')">
+                  @if (item.isClaimed) {
+                    <div class="claimed-badge">Claimed ✓</div>
+                  }
+                  
+                  @if (item.imageUrl) {
+                    <div class="item-image">
+                      <img [src]="item.imageUrl" [alt]="item.title" />
+                    </div>
+                  }
+                  
+                  <div class="item-content">
+                    <div class="item-header">
+                      <h3>{{ item.title }}</h3>
+                      <span [class]="'priority-badge ' + getPriorityClass(item.priority)">
+                        {{ item.priority || 'medium' }}
+                      </span>
+                    </div>
+                    
+                    @if (item.price) {
+                      <div class="item-price">{{ formatPrice(item.price) }}</div>
+                    }
+
+                    @if (item.notes) {
+                      <p class="item-notes">{{ item.notes }}</p>
+                    }
+
+                    @if (item.url) {
+                      <a [href]="item.url" target="_blank" class="item-link">View Item &rarr;</a>
+                    }
+
+                    <div class="item-actions">
+                      @if (!item.isClaimed) {
+                        <button (click)="openClaimModal(item)" class="btn btn-primary btn-full">
+                          Claim This Item
+                        </button>
+                      } @else {
+                        @if (canUnclaim(item)) {
+                          <button (click)="unclaimItem(item)" class="btn btn-secondary btn-full">
+                            Unclaim (You claimed this)
+                          </button>
+                        } @else {
+                          <button class="btn btn-disabled btn-full" disabled>
+                            Already Claimed
+                          </button>
+                        }
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </main>
+</div>
+
+@if (showClaimModal()) {
+  <div class="modal-overlay" (click)="closeClaimModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Claim Item</h2>
+        <button (click)="closeClaimModal()" class="btn-close">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        @if (selectedItem()) {
+          <div class="claiming-item">
+            <p class="claiming-label">You're claiming:</p>
+            <h3>{{ selectedItem()!.title }}</h3>
+          </div>
+        }
+
+        <form [formGroup]="claimForm" (ngSubmit)="claimItem()">
+          <div class="form-group">
+            <label for="claimerName">Your Name *</label>
+            <input
+              id="claimerName"
+              type="text"
+              formControlName="claimerName"
+              placeholder="Enter your name"
+              [class.error]="claimForm.controls.claimerName.invalid && claimForm.controls.claimerName.touched"
+            />
+            @if (claimForm.controls.claimerName.invalid && claimForm.controls.claimerName.touched) {
+              <span class="field-error">Name is required</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="claimerNote">Note (Optional)</label>
+            <textarea
+              id="claimerNote"
+              formControlName="claimerNote"
+              rows="3"
+              placeholder="Add a note (e.g., color preference, size)"
+            ></textarea>
+          </div>
+
+          <div class="info-box">
+            <p>
+              <strong>Important:</strong> You'll receive a secret token to unclaim this item later if needed.
+              The token will be saved in your browser.
+            </p>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" (click)="closeClaimModal()" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="claimForm.invalid || isClaiming()">
+              @if (isClaiming()) {
+                <span>Claiming...</span>
+              } @else {
+                <span>Claim Item</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+

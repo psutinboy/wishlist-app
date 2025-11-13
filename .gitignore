@@ -42,4 +42,10 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 info.txt
+.vercel
