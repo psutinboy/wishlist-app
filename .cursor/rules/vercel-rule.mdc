@@ -1,0 +1,31 @@
+---
+description: rule for best security practices
+alwaysApply: true
+---
+
+# Vercel Serverless Structure
+
+## Architecture
+
+- **One function per endpoint** in `/api` directory
+- Each endpoint corresponds to a single serverless function
+
+## Function Structure
+
+- **Export default handler** from each API file
+- Follow standard Vercel API route conventions
+
+## Environment Variables
+
+- Use `process.env` for accessing secrets and configuration
+- Store sensitive data in Vercel environment variables
+
+## File Organization
+
+``` json
+/api
+  ├── endpoint1.js
+  ├── endpoint2.js
+  └── subfolder/
+      └── nested-endpoint.js
+```

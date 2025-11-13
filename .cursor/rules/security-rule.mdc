@@ -1,0 +1,25 @@
+---
+description: Add description here
+alwaysApply: true
+---
+
+# Security Guidelines
+
+## Error Handling
+
+- Never leak sensitive information in error messages
+- Return generic messages (e.g., "Invalid credentials")
+- Use proper HTTP status codes
+
+## Authentication & Data Security
+
+- Implement input validation using Zod
+- Hash passwords with bcrypt
+- Store JWT tokens in HttpOnly cookies
+- Sanitize all user input
+
+## Environment Configuration
+
+- Use environment variables from `.env` files
+- Never hardcode secrets in source code
+- Never commit `.env` files to version control
