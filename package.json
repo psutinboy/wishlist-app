@@ -27,8 +27,11 @@
   },
   "private": true,
   "dependencies": {
+    "@angular/build": "^20.3.7",
+    "@angular/cli": "^20.3.7",
     "@angular/common": "^20.3.0",
     "@angular/compiler": "^20.3.0",
+    "@angular/compiler-cli": "^20.3.0",
     "@angular/core": "^20.3.0",
     "@angular/forms": "^20.3.0",
     "@angular/platform-browser": "^20.3.0",
@@ -46,13 +49,11 @@
     "node-html-parser": "^7.0.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "typescript": "~5.9.2",
     "zod": "^3.25.76",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@angular/build": "^20.3.7",
-    "@angular/cli": "^20.3.7",
-    "@angular/compiler-cli": "^20.3.0",
     "@types/express": "^5.0.1",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^20.17.19",
@@ -62,7 +63,6 @@
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.9.2"
+    "karma-jasmine-html-reporter": "~2.1.0"
   }
 }
