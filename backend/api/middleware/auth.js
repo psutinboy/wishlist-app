@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { ObjectId } from 'mongodb';
+import { connectToDatabase } from '../utils/db.js';
 
 dotenv.config();
 
@@ -10,7 +12,7 @@ dotenv.config();
  */
 export function generateToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    expiresIn: process.env.JWT_EXPIRES_IN || '14d'
   });
 }
 
@@ -35,8 +37,9 @@ export function verifyToken(token) {
 /**
  * Express middleware to require authentication
  * Attaches user data to req.user if authenticated
+ * Also handles activity tracking and automatic token refresh
  */
-export function requireAuth(req, res, next) {
+export async function requireAuth(req, res, next) {
   const token = req.cookies.auth_token;
   const user = verifyToken(token);
 
@@ -47,8 +50,62 @@ export function requireAuth(req, res, next) {
     });
   }
 
-  req.user = user;
-  next();
+  try {
+    // Check user's last activity
+    const { db } = await connectToDatabase();
+    const usersCollection = db.collection('users');
+    
+    const dbUser = await usersCollection.findOne({ _id: new ObjectId(user.userId) });
+    
+    if (!dbUser) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        statusCode: 401
+      });
+    }
+
+    // Check if lastActivity exists and if it's within 14 days
+    const now = new Date();
+    const twoWeeksInMs = 14 * 24 * 60 * 60 * 1000;
+    
+    if (dbUser.lastActivity) {
+      const lastActivity = new Date(dbUser.lastActivity);
+      const timeSinceLastActivity = now - lastActivity;
+      
+      // If more than 14 days of inactivity, reject and clear cookie
+      if (timeSinceLastActivity > twoWeeksInMs) {
+        res.cookie('auth_token', '', getLogoutCookieOptions());
+        return res.status(401).json({
+          error: 'Session expired due to inactivity',
+          statusCode: 401
+        });
+      }
+    }
+
+    // Update lastActivity
+    await usersCollection.updateOne(
+      { _id: new ObjectId(user.userId) },
+      { $set: { lastActivity: now } }
+    );
+
+    // Generate new token to extend session
+    const newToken = generateToken({
+      userId: user.userId,
+      email: user.email
+    });
+
+    // Set new auth cookie
+    res.cookie('auth_token', newToken, getAuthCookieOptions());
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      statusCode: 500
+    });
+  }
 }
 
 /**
@@ -74,7 +131,7 @@ export function getAuthCookieOptions() {
     httpOnly: true,
     secure: isProduction,
     sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days in milliseconds
     path: '/'
   };
 }

@@ -43,6 +43,7 @@ export interface UrlMetadata {
   title?: string;
   imageUrl?: string;
   price?: number;
+  category?: string;
   description?: string;
 }
 
@@ -105,7 +106,7 @@ export class ItemService {
     this.isLoadingSignal.set(true);
     this.errorSignal.set(null);
 
-    return this.api.post<{ item: WishItem }>('/items/create', data).pipe(
+    return this.api.post<{ item: WishItem }>('/items', data).pipe(
       tap(() => {
         this.isLoadingSignal.set(false);
       }),

@@ -68,7 +68,7 @@ export class ListService {
     this.isLoadingSignal.set(true);
     this.errorSignal.set(null);
 
-    return this.api.post<{ list: WishList }>('/lists/create', data).pipe(
+    return this.api.post<{ list: WishList }>('/lists', data).pipe(
       tap(response => {
         if (response.data?.list) {
           // Add new list to the beginning of the array

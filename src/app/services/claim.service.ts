@@ -37,7 +37,7 @@ export class ClaimService {
     this.isLoadingSignal.set(true);
     this.errorSignal.set(null);
 
-    return this.api.post<{ claim: Claim; message: string }>('/claims/create', data).pipe(
+    return this.api.post<{ claim: Claim; message: string }>('/claims', data).pipe(
       tap(() => {
         this.isLoadingSignal.set(false);
       }),

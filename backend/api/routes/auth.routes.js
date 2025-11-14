@@ -43,6 +43,7 @@ router.post('/signup', authRateLimiter, async (req, res) => {
         theme: 'system',
         allowClaimsByDefault: true
       },
+      lastActivity: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -99,6 +100,12 @@ router.post('/login', authRateLimiter, async (req, res) => {
     if (!isValidPassword) {
       return res.status(401).json(createErrorResponse(401, 'Invalid credentials'));
     }
+
+    // Update lastActivity
+    await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { lastActivity: new Date() } }
+    );
 
     // Generate JWT token
     const token = generateToken({

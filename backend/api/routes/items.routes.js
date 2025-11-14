@@ -67,6 +67,181 @@ router.get('/', requireAuth, generalRateLimiter, async (req, res) => {
   }
 });
 
+// Helper function: Local HTML scraping fallback
+async function extractMetadataFromHTML(url) {
+  // Fetch URL with timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds
+
+  let response;
+  try {
+    response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+      }
+    });
+    clearTimeout(timeoutId);
+  } catch (fetchError) {
+    clearTimeout(timeoutId);
+    throw new Error('Failed to fetch URL');
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch URL');
+  }
+
+  const html = await response.text();
+  const root = parse(html);
+
+  const getMetaContent = (property) => {
+    const tag = root.querySelector(`meta[property="${property}"]`) || 
+                root.querySelector(`meta[name="${property}"]`);
+    return tag?.getAttribute('content') || null;
+  };
+
+  const getItemprop = (property) => {
+    const tag = root.querySelector(`[itemprop="${property}"]`);
+    return tag?.getAttribute('content') || tag?.text || null;
+  };
+
+  // Extract JSON-LD structured data
+  let structuredData = null;
+  const jsonLdScripts = root.querySelectorAll('script[type="application/ld+json"]');
+  
+  for (const script of jsonLdScripts) {
+    try {
+      const data = JSON.parse(script.text);
+      const items = Array.isArray(data) ? data : [data];
+      
+      for (const item of items) {
+        if (item['@type'] === 'Product' || item['@type']?.includes('Product')) {
+          structuredData = item;
+          break;
+        }
+      }
+      if (structuredData) break;
+    } catch (e) {
+      // Invalid JSON, skip
+    }
+  }
+
+  // Extract title
+  let title = structuredData?.name || 
+              getMetaContent('og:title') ||
+              getMetaContent('twitter:title') ||
+              getItemprop('name') ||
+              root.querySelector('title')?.text ||
+              null;
+  
+  if (title) {
+    title = title.replace(/\s*[|\-–—]\s*.{0,50}$/, '').trim();
+  }
+
+  // Extract image
+  let imageUrl = null;
+  if (structuredData?.image) {
+    if (typeof structuredData.image === 'string') {
+      imageUrl = structuredData.image;
+    } else if (Array.isArray(structuredData.image)) {
+      imageUrl = structuredData.image[0];
+    } else if (structuredData.image.url) {
+      imageUrl = structuredData.image.url;
+    }
+  }
+  
+  if (!imageUrl) {
+    imageUrl = getMetaContent('og:image') ||
+               getMetaContent('twitter:image') ||
+               getItemprop('image') ||
+               null;
+  }
+
+  if (imageUrl && !imageUrl.startsWith('http')) {
+    try {
+      const baseUrl = new URL(url);
+      imageUrl = new URL(imageUrl, baseUrl.origin).href;
+    } catch (e) {
+      imageUrl = null;
+    }
+  }
+
+  // Extract price
+  let price = null;
+  if (structuredData?.offers) {
+    const offer = Array.isArray(structuredData.offers) 
+      ? structuredData.offers[0] 
+      : structuredData.offers;
+    
+    if (offer?.price) {
+      price = parseFloat(offer.price);
+    } else if (offer?.lowPrice) {
+      price = parseFloat(offer.lowPrice);
+    }
+  }
+  
+  if (!price) {
+    const priceFromMeta = getMetaContent('og:price:amount') || 
+                         getMetaContent('product:price:amount') ||
+                         getMetaContent('twitter:data1') ||
+                         getItemprop('price');
+    if (priceFromMeta) {
+      price = parseFloat(priceFromMeta.replace(/[^0-9.]/g, ''));
+    }
+  }
+  
+  if (price && !isNaN(price)) {
+    price = Math.round(price * 100);
+  } else {
+    price = null;
+  }
+
+  // Extract category
+  let category = structuredData?.category || null;
+  
+  if (!category) {
+    try {
+      const urlPath = new URL(url).pathname;
+      const segments = urlPath.split('/').filter(s => s && s.length > 2);
+      
+      if (segments.length > 0) {
+        const firstSegment = segments[0]
+          .replace(/[-_]/g, ' ')
+          .replace(/\b\w/g, l => l.toUpperCase());
+        
+        const ignoredSegments = ['products', 'product', 'shop', 'store', 'item', 'p', 'dp'];
+        if (!ignoredSegments.includes(segments[0].toLowerCase())) {
+          category = firstSegment;
+        }
+      }
+    } catch (e) {
+      // Invalid URL parsing, skip
+    }
+  }
+
+  // Extract description
+  const description = getMetaContent('og:description') || 
+                     getMetaContent('twitter:description') ||
+                     getMetaContent('description') ||
+                     getItemprop('description') ||
+                     structuredData?.description ||
+                     null;
+
+  return {
+    title: title ? sanitizeHtml(title).substring(0, 200) : null,
+    imageUrl: imageUrl && imageUrl.startsWith('http') ? imageUrl : null,
+    price: price,
+    category: category ? sanitizeHtml(category).substring(0, 50) : null,
+    description: description ? sanitizeHtml(description).substring(0, 500) : null
+  };
+}
+
 // POST /api/items/preview - Preview URL metadata
 router.post('/preview', requireAuth, previewRateLimiter, async (req, res) => {
   try {
@@ -84,58 +259,90 @@ router.post('/preview', requireAuth, previewRateLimiter, async (req, res) => {
       return res.status(400).json(createErrorResponse(400, urlCheck.error));
     }
 
-    // Fetch URL with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    let metadata = null;
+    let usedFallback = false;
 
-    let response;
+    // PRIMARY: Try Microlink API (50k free requests/month)
     try {
-      response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; WishlistBot/1.0)'
-        }
+      const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}&meta=true&waitFor=5000&screenshot=false`;
+      const microlinkResponse = await fetch(microlinkUrl, {
+        headers: process.env.MICROLINK_API_KEY ? {
+          'x-api-key': process.env.MICROLINK_API_KEY
+        } : {},
+        signal: AbortSignal.timeout(15000) // 15 second timeout for slow sites
       });
-      clearTimeout(timeoutId);
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        return res.status(408).json(createErrorResponse(408, 'Request timeout'));
+
+      if (microlinkResponse.ok) {
+        const microlinkData = await microlinkResponse.json();
+        
+        if (microlinkData.status === 'success' && microlinkData.data) {
+          const data = microlinkData.data;
+          
+          // Extract price from Microlink data
+          let price = null;
+          if (data.price) {
+            // Microlink sometimes returns price with currency symbol
+            const priceStr = typeof data.price === 'string' 
+              ? data.price.replace(/[^0-9.]/g, '') 
+              : data.price;
+            const priceVal = parseFloat(priceStr);
+            if (!isNaN(priceVal) && priceVal > 0 && priceVal < 1000000) {
+              price = Math.round(priceVal * 100);
+            }
+          }
+
+          // Extract category from URL or title
+          let category = null;
+          try {
+            const urlPath = new URL(url).pathname;
+            const segments = urlPath.split('/').filter(s => s && s.length > 2);
+            
+            if (segments.length > 0) {
+              const firstSegment = segments[0]
+                .replace(/[-_]/g, ' ')
+                .replace(/\b\w/g, l => l.toUpperCase());
+              
+              const ignoredSegments = ['products', 'product', 'shop', 'store', 'item', 'p', 'dp'];
+              if (!ignoredSegments.includes(segments[0].toLowerCase())) {
+                category = firstSegment;
+              }
+            }
+          } catch (e) {
+            // Invalid URL parsing, skip
+          }
+
+          metadata = {
+            title: data.title ? sanitizeHtml(data.title).substring(0, 200) : null,
+            imageUrl: data.image?.url || data.logo?.url || null,
+            price: price,
+            category: category ? sanitizeHtml(category).substring(0, 50) : null,
+            description: data.description ? sanitizeHtml(data.description).substring(0, 500) : null
+          };
+          
+          console.log('✓ Microlink API success for:', url);
+        }
       }
-      return res.status(400).json(createErrorResponse(400, 'Failed to fetch URL'));
+    } catch (microlinkError) {
+      console.log('Microlink API failed, using fallback:', microlinkError.message);
+      usedFallback = true;
     }
 
-    if (!response.ok) {
-      return res.status(400).json(createErrorResponse(400, 'Failed to fetch URL'));
+    // FALLBACK: Use local HTML scraping if Microlink failed
+    if (!metadata) {
+      usedFallback = true;
+      try {
+        metadata = await extractMetadataFromHTML(url);
+        console.log('✓ Local scraping success for:', url);
+      } catch (fallbackError) {
+        console.error('Both Microlink and local scraping failed:', fallbackError.message);
+        return res.status(400).json(createErrorResponse(400, 'Failed to extract metadata from URL'));
+      }
     }
-
-    // Parse HTML
-    const html = await response.text();
-    const root = parse(html);
-
-    // Extract Open Graph tags
-    const getMetaContent = (property) => {
-      const tag = root.querySelector(`meta[property="${property}"]`) || 
-                  root.querySelector(`meta[name="${property}"]`);
-      return tag?.getAttribute('content') || null;
-    };
-
-    const ogTitle = getMetaContent('og:title') || root.querySelector('title')?.text || null;
-    const ogImage = getMetaContent('og:image');
-    const ogPrice = getMetaContent('og:price:amount') || getMetaContent('product:price:amount');
-    const ogDescription = getMetaContent('og:description') || getMetaContent('description');
-
-    // Sanitize extracted data
-    const metadata = {
-      title: ogTitle ? sanitizeHtml(ogTitle).substring(0, 200) : null,
-      imageUrl: ogImage && ogImage.startsWith('http') ? ogImage : null,
-      price: ogPrice ? Math.round(parseFloat(ogPrice) * 100) : null, // Convert to cents
-      description: ogDescription ? sanitizeHtml(ogDescription).substring(0, 500) : null
-    };
 
     return res.status(200).json(createSuccessResponse({
       metadata,
-      url
+      url,
+      source: usedFallback ? 'local' : 'microlink' // For debugging
     }));
 
   } catch (error) {

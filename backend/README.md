@@ -84,7 +84,7 @@ backend/
 ### Items
 - `GET /api/items?listId=xxx` - Get items for list
 - `POST /api/items` - Create item
-- `POST /api/items/preview` - Preview URL metadata
+- `POST /api/items/preview` - Preview URL metadata (powered by Microlink)
 - `PATCH /api/items/:id` - Update item
 - `DELETE /api/items/:id` - Delete item
 
@@ -109,6 +109,13 @@ Required environment variables (see `.env.example`):
 - `NODE_ENV` - Environment (development/production)
 - `ALLOWED_ORIGINS` - CORS origins for development
 
+Optional environment variables:
+
+- `MICROLINK_API_KEY` - Microlink API key for enhanced URL preview (optional)
+  - Free tier: 50,000 requests/month without key
+  - Sign up at https://microlink.io for usage tracking and higher limits
+  - The preview feature works without this key using the free tier
+
 ## Deployment
 
 ### Vercel
@@ -124,6 +131,21 @@ Vercel will automatically:
 - Install dependencies
 - Build the frontend
 - Deploy the Express backend as serverless functions
+
+## Features
+
+### URL Preview with Microlink
+
+The `/api/items/preview` endpoint uses **Microlink** for intelligent metadata extraction:
+
+- **50,000 free requests/month** (no API key required)
+- Handles JavaScript-rendered content (React, Vue, etc.)
+- Bypasses bot detection on major e-commerce sites
+- Extracts: title, image, price, category, and description
+- **Automatic fallback**: If Microlink fails, uses local HTML scraping
+- Works with: Amazon, eBay, Shopify, WooCommerce, and most online stores
+
+The endpoint automatically tries Microlink first and falls back to local scraping if needed.
 
 ## Security Features
 

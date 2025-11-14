@@ -187,5 +187,13 @@ export class PublicListComponent implements OnInit {
       default: return 'priority-medium';
     }
   }
+
+  protected openItemUrl(item: WishItem): void {
+    if (item.url) {
+      window.open(item.url, '_blank');
+    } else {
+      alert("This item doesn't have a link");
+    }
+  }
 }
 

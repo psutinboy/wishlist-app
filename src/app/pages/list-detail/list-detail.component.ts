@@ -136,6 +136,9 @@ export class ListDetailComponent implements OnInit {
           if (metadata.price) {
             this.itemForm.controls.price.setValue(metadata.price);
           }
+          if (metadata.category && !this.itemForm.controls.category.value) {
+            this.itemForm.controls.category.setValue(metadata.category);
+          }
         }
         this.isPreviewLoading.set(false);
       },
@@ -248,6 +251,14 @@ export class ListDetailComponent implements OnInit {
     navigator.clipboard.writeText(url).then(() => {
       alert('Share link copied to clipboard!');
     });
+  }
+
+  protected openItemUrl(item: WishItem): void {
+    if (item.url) {
+      window.open(item.url, '_blank');
+    } else {
+      alert("This item doesn't have a link");
+    }
   }
 }
 

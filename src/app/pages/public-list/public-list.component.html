@@ -37,7 +37,7 @@
             <h2 class="category-title">{{ group[0] }}</h2>
             <div class="items-grid">
               @for (item of group[1]; track item.id) {
-                <div [class]="'item-card ' + (item.isClaimed ? 'claimed' : '')">
+                <div [class]="'item-card ' + (item.isClaimed ? 'claimed ' : '') + (item.url ? 'has-url' : '')" (click)="openItemUrl(item)">
                   @if (item.isClaimed) {
                     <div class="claimed-badge">Claimed ✓</div>
                   }
@@ -65,17 +65,17 @@
                     }
 
                     @if (item.url) {
-                      <a [href]="item.url" target="_blank" class="item-link">View Item &rarr;</a>
+                      <a [href]="item.url" target="_blank" class="item-link" (click)="$event.stopPropagation()">View Item &rarr;</a>
                     }
 
                     <div class="item-actions">
                       @if (!item.isClaimed) {
-                        <button (click)="openClaimModal(item)" class="btn btn-primary btn-full">
+                        <button (click)="openClaimModal(item); $event.stopPropagation()" class="btn btn-primary btn-full">
                           Claim This Item
                         </button>
                       } @else {
                         @if (canUnclaim(item)) {
-                          <button (click)="unclaimItem(item)" class="btn btn-secondary btn-full">
+                          <button (click)="unclaimItem(item); $event.stopPropagation()" class="btn btn-secondary btn-full">
                             Unclaim (You claimed this)
                           </button>
                         } @else {
