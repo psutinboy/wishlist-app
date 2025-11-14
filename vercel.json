@@ -3,12 +3,12 @@
   "buildCommand": "npm install && cd backend && npm install && cd .. && npm run build",
   "outputDirectory": "dist/wishlist-app/browser",
   "functions": {
-    "backend/server.js": {
+    "api/index.js": {
       "maxDuration": 10
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/backend/server.js" },
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

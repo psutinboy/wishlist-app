@@ -1,3 +1,11 @@
-# Ignore individual API functions (use backend/server.js instead)
-api/
+# Ignore individual API functions (except api/index.js)
+api/_db.js
+api/_middleware/
+api/_utils/
+api/auth/
+api/claims/
+api/items/
+api/lists/
+api/users/
+api/init-db.js
 
