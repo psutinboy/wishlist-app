@@ -1,15 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "npm install && npm run backend:install && npm run build",
+  "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist/wishlist-app/browser",
-  "builds": [
-    {
-      "src": "backend/api.js",
-      "use": "@vercel/node"
-    }
-  ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/backend/api.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
