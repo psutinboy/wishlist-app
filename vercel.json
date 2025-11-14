@@ -1,8 +1,14 @@
 {
   "version": 2,
-  "buildCommand": "npm install && npm run build",
+  "buildCommand": "npm install && cd backend && npm install && cd .. && npm run build",
   "outputDirectory": "dist/wishlist-app/browser",
+  "functions": {
+    "backend/server.js": {
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/backend/server.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
